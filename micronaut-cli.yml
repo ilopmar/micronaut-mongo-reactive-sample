@@ -1,0 +1,5 @@
+profile: service
+defaultPackage: mongoreactive
+---
+testFramework: spock
+sourceLanguage: java
