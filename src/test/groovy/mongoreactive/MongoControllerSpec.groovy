@@ -4,19 +4,39 @@ import io.micronaut.context.ApplicationContext
 import io.micronaut.http.HttpRequest
 import io.micronaut.http.client.RxHttpClient
 import io.micronaut.runtime.server.EmbeddedServer
+import org.testcontainers.containers.MongoDBContainer
+import org.testcontainers.spock.Testcontainers
 import spock.lang.AutoCleanup
 import spock.lang.Shared
 import spock.lang.Specification
 
+@Testcontainers
 class MongoControllerSpec extends Specification {
 
     @Shared
-    @AutoCleanup
-    EmbeddedServer embeddedServer = ApplicationContext.run(EmbeddedServer)
+    MongoDBContainer mongo = new MongoDBContainer("mongo:4.1.1")
+            .withExposedPorts(27017)
 
     @Shared
     @AutoCleanup
-    RxHttpClient rxClient = embeddedServer.applicationContext.createBean(RxHttpClient, embeddedServer.getURL())
+    EmbeddedServer embeddedServer
+
+    @Shared
+    @AutoCleanup
+    RxHttpClient rxClient
+
+    def setupSpec() {
+        embeddedServer = ApplicationContext.run(EmbeddedServer,
+                ['mongodb.uri': mongo.getReplicaSetUrl("micronaut")])
+        rxClient = embeddedServer.applicationContext.createBean(RxHttpClient, embeddedServer.getURL())
+    }
+
+    void 'test it is running'() {
+        expect:
+        mongo.running
+        embeddedServer.running
+        rxClient.running
+    }
 
     void 'test save a document from a POJO'() {
         given:
